@@ -22,6 +22,11 @@ func NewUserHandler(userDAO *dao.UserDAO, logger *logger.Logger) *UserHandler {
     }
 }
 
+// レスポンス用の構造体を追加
+type CreateUserResponse struct {
+    ID int64 `json:"id"`
+}
+
 func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
     var user entity.User
     if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -37,8 +42,10 @@ func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
         return
     }
 
+    response := CreateUserResponse{ID: id}
+    w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(map[string]int64{"id": id})
+    json.NewEncoder(w).Encode(response)
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
