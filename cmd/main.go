@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"database/sql"
-	"log"
 	"project/internal/dao"
-
+	"project/pkg/errors"
+	"project/pkg/logger"
 	"project/pkg/orm/config"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
+	logger := logger.NewLogger()
 	ctx := context.Background()
 
 	cfg := config.NewConfig()
@@ -20,16 +21,17 @@ func main() {
 
 	db, err := sql.Open(cfg.DriverName, cfg.DSN)
 	if err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to connect to database: %v", err)
+		panic(errors.NewAppError("DB_CONNECTION_ERROR", "Database connection failed", err))
 	}
 	defer db.Close()
 
-	// マイグレーションの実行
 	migrator := db.NewMigrator(db)
 	if err := migrator.RunMigrations(); err != nil {
-		log.Fatal(err)
+		logger.Error("Failed to run migrations: %v", err)
+		panic(errors.NewAppError("MIGRATION_ERROR", "Database migration failed", err))
 	}
 
 	userDAO := dao.NewUserDAO(db)
-	log.Println("Application started successfully!")
+	logger.Info("Application started successfully!")
 }
