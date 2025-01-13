@@ -1,0 +1,20 @@
+package {{.Package}}
+
+import (
+    "context"
+    "database/sql"
+)
+
+type {{.EntityName}}DAO struct {
+    db *sql.DB
+}
+
+func New{{.EntityName}}DAO(db *sql.DB) *{{.EntityName}}DAO {
+    return &{{.EntityName}}DAO{db: db}
+}
+
+{{range .Methods}}
+func (d *{{$.EntityName}}DAO) {{.Name}}({{range .Parameters}}{{.Name}} {{.Type}}, {{end}}) {{.ReturnType}} {
+    // Implementation will be generated here
+}
+{{end}}
