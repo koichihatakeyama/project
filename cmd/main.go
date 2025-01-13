@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"log"
 	"project/internal/dao"
-	"project/internal/entity"
+
 	"project/pkg/orm/config"
+
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -22,22 +24,12 @@ func main() {
 	}
 	defer db.Close()
 
+	// マイグレーションの実行
+	migrator := db.NewMigrator(db)
+	if err := migrator.RunMigrations(); err != nil {
+		log.Fatal(err)
+	}
+
 	userDAO := dao.NewUserDAO(db)
-
-	// サンプルユーザーを作成
-	user := entity.NewUser("Test User", "test@example.com")
-
-	// ユーザーを保存
-	id, err := userDAO.Insert(ctx, user)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Created user with ID: %d\n", id)
-
-	// 保存したユーザーを取得
-	savedUser, err := userDAO.FindByID(ctx, id)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Found user: %+v\n", savedUser)
+	log.Println("Application started successfully!")
 }
