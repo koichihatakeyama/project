@@ -14,38 +14,45 @@ type UserHandler struct {
     userDAO *dao.UserDAO
     logger  *logger.Logger
 }
+  func NewUserHandler(userDAO *dao.UserDAO, logger *logger.Logger) *UserHandler {
+      return &UserHandler{
+          userDAO:   userDAO,
+          logger:    logger,
+          validator: validator.NewUserValidator(),
+      }
+  }
 
-func NewUserHandler(userDAO *dao.UserDAO, logger *logger.Logger) *UserHandler {
-    return &UserHandler{
-        userDAO: userDAO,
-        logger:  logger,
-    }
-}
+  // レスポンス用の構造体を追加
+  type CreateUserResponse struct {
+      ID int64 `json:"id"`
+  }
 
-// レスポンス用の構造体を追加
-type CreateUserResponse struct {
-    ID int64 `json:"id"`
-}
+  func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
+      var req model.CreateUserRequest
+      if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+          h.logger.Error("リクエストのデコードに失敗: %v", err)
+          http.Error(w, "Invalid request body", http.StatusBadRequest)
+          return
+      }
 
-func (h *UserHandler) Create(w http.ResponseWriter, r *http.Request) {
-    var user entity.User
-    if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-        h.logger.Error("Failed to decode request body: %v", err)
-        http.Error(w, err.Error(), http.StatusBadRequest)
-        return
-    }
+      if errors := h.validator.ValidateCreate(&req); len(errors) > 0 {
+          w.Header().Set("Content-Type", "application/json")
+          w.WriteHeader(http.StatusBadRequest)
+          json.NewEncoder(w).Encode(errors)
+          return
+      }
 
-    id, err := h.userDAO.Insert(r.Context(), &user)
-    if err != nil {
-        h.logger.Error("Failed to create user: %v", err)
-        http.Error(w, err.Error(), http.StatusInternalServerError)
-        return
-    }
+      id, err := h.userDAO.Insert(r.Context(), &user)
+      if err != nil {
+          h.logger.Error("Failed to create user: %v", err)
+          http.Error(w, err.Error(), http.StatusInternalServerError)
+          return
+      }
 
-    response := CreateUserResponse{ID: id}
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(http.StatusCreated)
-    json.NewEncoder(w).Encode(response)
+      response := CreateUserResponse{ID: id}
+      w.Header().Set("Content-Type", "application/json")
+      w.WriteHeader(http.StatusCreated)
+      json.NewEncoder(w).Encode(response)
 }
 
 func (h *UserHandler) GetByID(w http.ResponseWriter, r *http.Request) {
